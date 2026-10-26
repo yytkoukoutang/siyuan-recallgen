@@ -4,11 +4,28 @@
 
 > An AI-powered quiz generation and spaced review plugin for SiYuan Note — select note content to generate multi-type quizzes, answer in a built-in panel, auto-grade, and track progress with a contribution-graph heatmap.
 
+## What is new in 0.1.2
+
+- Batch review after answering and grading; approve, edit, defer or discard before bank admission.
+- Separate current prompts, manual version snapshots and review feedback.
+- Filter, branch, compare, apply and delete versions; manually request evidence-based AI suggestions.
+- Improved LaTeX compatibility, select-menu stacking and compact version rows.
+
 ## 📖 Overview
 
 RecallGen is a SiYuan Note plugin that transforms your notes into reviewable quiz papers. Select a note block or trigger from a document/notebook/date range, and the plugin calls an AI model to generate various question types. After answering in a dedicated tab, objective questions are graded locally, subjective and coding questions are AI-graded, and a weakness analysis with study advice is generated. Score history is visualized as a GitHub-style heatmap, and past quizzes can be replayed from the history panel.
 
 ## ✨ Features
+
+### Post-answer Review and Prompt Improvement
+
+- **New quiz workflow**: generate → answer → grade and save scores → batch review → admit approved questions to the bank. Existing bank reviews continue to update their schedules directly.
+- **Batch review**: edit questions, answers, types, tags and explanations together. Approve to admit, skip to keep pending, or discard. Editors show Markdown/LaTeX source; question previews render it.
+- **Feedback**: only actions with a reason create feedback records, including the original, revision, action and generation-time prompt snapshot.
+- **Current prompts**: Settings → Prompts → Current prompts offers generator/reviewer/grader/analysis editors. Direct edits take effect after saving; saving a version is optional and manual.
+- **Version library**: manually save snapshots, filter by scenario, branch, compare, apply or delete. Applying asks before overwriting current prompts. Deleting leaves current prompts and review evidence intact. Automatic provenance snapshots stay out of the library.
+- **Review feedback**: manually request analysis in Settings → Prompts → Review feedback. Up to 50 recent records with reasons and their prompts are sent to the configured grading AI. Suggestions cite evidence, frequency and replacement text; accepted suggestions populate a draft for manual version saving and application. Collecting 20–50 records is recommended; check small-sample conclusions carefully.
+- **Pending and persistence**: pending questions are available in Review feedback. Confirmed skipped edits are saved; unsubmitted form edits are not autosaved. Workflow data is stored separately and is currently excluded from existing bank/score exports.
 
 ### Quiz Generation
 
@@ -91,7 +108,7 @@ The plugin supports **multi-endpoint + multi-model** configuration, with three A
   - **Records**: group by date/source, thumbnail/list/table views, search by title and source, filter by score band, export as JSON/CSV/Markdown, delete a single record with confirmation, and click a record to replay the full result. The list renders in batches of 60 with load-on-scroll, so a long history does not create a huge DOM at once
   - **Statistics**: each knowledge point in the weakest-areas ranking has a "Review" action that starts a session on that topic. Switch the range (last 7/30/90 days or all time) and see a score-trend line, pass rate by question type, score-band distribution, pass rate by difficulty donut, plus summary metrics (quiz and question counts, average/best score, current and longest streak, time per question) and a weakest-areas ranking
 
-- **Spaced repetition**: after submitting, questions enter the bank keyed by stem fingerprint and FSRS schedules their next review; review what is due from the command palette or title menu
+- **Spaced repetition**: newly generated questions enter the bank after post-answer approval; existing bank reviews update FSRS schedules directly. Review due questions from the command palette or title menu
 
 ### Settings Panel
 
@@ -100,7 +117,7 @@ Left sidebar navigation + right content area, 6 independent sections:
 1. **AI Service**: Endpoint CRUD (name/provider/protocol/Base URL/API Key), nested models per endpoint (name/temperature/MaxTokens), duplicate name prevention, test connection (endpoint+model cascade select), global timeout and JSON Schema toggle
 2. **AI Roles**: Three role cards (generator/reviewer/grader) with endpoint+model cascade selection; different models recommended but same allowed
 3. **Quiz & Answer**: Question type toggles, difficulty distribution (total + per-difficulty + validation), extra-scope ratio, language (Chinese/English), countdown toggle and duration, panel width, multiple-choice scoring policy; the current combination can also be saved as a named **quiz preset** (apply or delete it with one click, and the active preset is marked)
-4. **Prompts**: Four prompt editors (generate/review/grade/analysis), reset to default supported
+4. **Prompts**: Current prompts, Version library and Review feedback tabs; direct editing, defaults, manual version snapshots and feedback analysis
 5. **Heatmap**: Heatmap preview + aggregation mode + color range management
 6. **Data Management**: Clear scores, quiz progress and the question bank; export/import configuration (optionally including API keys); export/import a score backup including questions and grading detail; export/import a bank backup including review schedules and answer history
 
@@ -359,7 +376,7 @@ Coding test cases can actually be executed:
 
 ## 🧠 Spaced Repetition & Question Bank
 
-After submitting, every question enters the question bank keyed by a stem fingerprint, and its next review time is scheduled by the [FSRS](https://github.com/open-spaced-repetition/free-spaced-repetition-scheduler) algorithm (via the mature `ts-fsrs` implementation):
+Newly generated questions enter batch review after grading; only approved questions enter the bank keyed by a stem fingerprint. Existing bank reviews update their schedules directly. Next review times are scheduled by the [FSRS](https://github.com/open-spaced-repetition/free-spaced-repetition-scheduler) algorithm (via the mature `ts-fsrs` implementation):
 
 | Score | FSRS rating | Effect |
 |-------|-------------|--------|

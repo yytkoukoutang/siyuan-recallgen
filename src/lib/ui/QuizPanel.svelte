@@ -66,6 +66,9 @@
     import { Separator } from "@/lib/components/ui/separator";
     import * as Collapsible from "@/lib/components/ui/collapsible";
     import ComposeView from "./ComposeView.svelte";
+    import ReviewQueue from "./ReviewQueue.svelte";
+    let reviewDrafts = $state<import("../quiz/review-workflow").ReviewDraft[]>([]);
+    let reviewVersionId = $state("");
     import GenActionBar from "./GenActionBar.svelte";
     import { GEN_STEPS, stepStates } from "../quiz/gen-progress";
     import { describeError, type ErrorDescription } from "../ai/errors";
@@ -703,6 +706,7 @@
         progressLabel = t("quiz.generating");
         beginGenTimer();
         try {
+            const promptVersion = await service.workflow?.capture();
             const generated = await service.generate(
                 tabData.content ?? "",
                 (phase, round, detail, stats) => {
@@ -743,6 +747,7 @@
             if (cancelled) return;
             if (prev) session.answers = prev.answers;
             panelState = "answering";
+            reviewVersionId = promptVersion?.id ?? "";
             if (countdownEnabled) startCountdown();
         } catch (e) {
             // 取消（无论来自关闭 tab 还是新一轮开始）都不该弹出错误
@@ -902,16 +907,20 @@
             });
             await service.clearProgress(session.id);
 
-            // 把作答结果写回题库以推进 FSRS 排程；失败不影响成绩与结果展示
-            try {
-                await service.recordBankOutcomes(
-                    session.questions,
-                    { sourceDocId: session.sourceDocId, sourceTitle: session.sourceTitle },
-                    results
-                );
-            } catch (e) {
-                console.error("[RecallGen] 题库排程更新失败", e);
+            // 作答完成后才进入审核；审核通过后才写入题库并推进 FSRS。
+            if (service.workflow && reviewVersionId) {
+                reviewDrafts = await service.workflow.enqueue(session.questions, reviewVersionId, {
+                    sourceDocId: session.sourceDocId,
+                    sourceTitle: session.sourceTitle,
+                });
+                panelState = "auditing";
+                return;
             }
+            await service.recordBankOutcomes(
+                session.questions,
+                { sourceDocId: session.sourceDocId, sourceTitle: session.sourceTitle },
+                results
+            );
 
             progressLabel = t("quiz.analyzing");
             progressValue = null;
@@ -1234,7 +1243,33 @@
             </div>
         {/snippet}
 
-        {#if panelState === "composing"}
+        {#if panelState === "auditing"}
+            <ReviewQueue
+                {service}
+                initial={reviewDrafts}
+                ondone={(accepted) => {
+                    if (!session || !accepted.length) {
+                        session = null;
+                        panelState = backToInput();
+                        return;
+                    }
+                    session.questions = accepted;
+                    void service
+                        .recordBankOutcomes(
+                            accepted,
+                            { sourceDocId: session.sourceDocId, sourceTitle: session.sourceTitle },
+                            results ?? []
+                        )
+                        .then(() => {
+                            panelState = "result";
+                        })
+                        .catch((e) => {
+                            submitError = describeError(e);
+                            panelState = "result";
+                        });
+                }}
+            />
+        {:else if panelState === "composing"}
             <ComposeView
                 ongenerate={(content, sourceTitle) => {
                     tabData.content = content;

@@ -275,4 +275,4 @@ export interface HeatmapConfig {
 /** 答题面板状态机 */
 export type PanelState =
     /** 粘贴材料出题：先收集内容，再进 loading_generating */
-    "composing" | "configuring" | "loading_generating" | "answering" | "loading_grading" | "result";
+    "composing" | "configuring" | "loading_generating" | "auditing" | "answering" | "loading_grading" | "result";

@@ -85,15 +85,22 @@ const mathExtension: TokenizerAndRendererExtension = {
     name: "rgMath",
     level: "inline",
     start(src: string) {
-        const index = src.indexOf("$");
+        const index = src.search(/\$|\\[([]/);
         return index < 0 ? undefined : index;
     },
     tokenizer(src: string) {
-        if (src[0] !== "$" || !batch) return undefined;
-        const display = src.startsWith("$$");
-        const delim = display ? "$$" : "$";
+        if (!batch) return undefined;
+        const bracket = src.startsWith("\\(") || src.startsWith("\\[");
+        if (src[0] !== "$" && !bracket) return undefined;
+        const display = src.startsWith("$$") || src.startsWith("\\[");
+        const delim = bracket ? src.slice(0, 2) : display ? "$$" : "$";
+        const closing = bracket ? (display ? "\\]" : "\\)") : delim;
         const rest = src.slice(delim.length);
-        const end = rest.indexOf(delim);
+        let end = rest.indexOf(closing);
+        // An escaped dollar belongs to the formula, not its delimiter.
+        while (end >= 0 && !bracket && (rest.slice(0, end).match(/\\+$/)?.[0].length ?? 0) % 2 === 1) {
+            end = rest.indexOf(closing, end + closing.length);
+        }
         if (end < 0) return undefined;
         const body = rest.slice(0, end);
         if (body.trim().length === 0) return undefined;
@@ -118,7 +125,7 @@ const mathExtension: TokenizerAndRendererExtension = {
         const placeholder = `${PH_START}${batch.nonce}-${batch.rendered.length - 1}${PH_END}`;
         return {
             type: "rgMath",
-            raw: delim + body + delim,
+            raw: delim + body + closing,
             // tokens: [] 表示不再对这段内容做行内解析（否则公式里的 _ 会被当强调）
             tokens: [],
             placeholder,
