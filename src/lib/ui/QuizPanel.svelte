@@ -579,6 +579,7 @@
                         ? t("bank.sessionTitleType", t(`diff.${difficulty}`), String(due.length))
                         : t("bank.sessionTitle", String(due.length)),
                 questions: due,
+                bankReview: true,
                 createdAt: Date.now(),
                 answers: {},
             };
@@ -597,6 +598,7 @@
 
     function adoptSession(existing: QuizSession) {
         session = existing;
+        reviewVersionId = existing.reviewVersionId ?? "";
         panelState = "answering";
         activeIndex = 0;
         // 开始为第一题计时
@@ -748,6 +750,7 @@
             if (prev) session.answers = prev.answers;
             panelState = "answering";
             reviewVersionId = promptVersion?.id ?? "";
+            session.reviewVersionId = reviewVersionId;
             if (countdownEnabled) startCountdown();
         } catch (e) {
             // 取消（无论来自关闭 tab 还是新一轮开始）都不该弹出错误
@@ -908,8 +911,12 @@
             await service.clearProgress(session.id);
 
             // 作答完成后才进入审核；审核通过后才写入题库并推进 FSRS。
-            if (service.workflow && reviewVersionId) {
-                reviewDrafts = await service.workflow.enqueue(session.questions, reviewVersionId, {
+            if (service.workflow && !session.bankReview && tabData.mode !== "reviewDue") {
+                // Legacy progress has no provenance snapshot. Capture current prompts
+                // as a fallback instead of silently bypassing the review gate.
+                const versionId = session.reviewVersionId || reviewVersionId || (await service.workflow.capture()).id;
+                session.reviewVersionId = versionId;
+                reviewDrafts = await service.workflow.enqueue(session.questions, versionId, {
                     sourceDocId: session.sourceDocId,
                     sourceTitle: session.sourceTitle,
                 });

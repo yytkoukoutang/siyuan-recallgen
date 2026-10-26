@@ -172,6 +172,9 @@ export interface GradingResult {
 
 /** 一次答题会话 */
 export interface QuizSession {
+    /** Preserve post-answer review across tab reloads and progress restoration. */
+    reviewVersionId?: string;
+    bankReview?: boolean;
     id: string;
     sourceDocId: string;
     sourceTitle: string;
