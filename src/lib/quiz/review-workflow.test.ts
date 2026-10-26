@@ -1,5 +1,18 @@
 import { expect, it, vi } from "vitest";
 import { ReviewWorkflowStore, type ReviewDraft } from "./review-workflow";
+
+it("accepts proxied questions at the UI persistence boundary", async () => {
+    const { store } = setup();
+    const version = await store.capture(new Proxy(getDefaultConfig().prompts, {}));
+    const proxied = new Proxy(structuredClone(question), {});
+    expect(() => structuredClone(proxied)).toThrow();
+    const drafts = await store.enqueue([proxied], version.id, { sourceDocId: "doc", sourceTitle: "source" });
+    expect(drafts[0].question.question).toBe(question.question);
+    drafts[0].reason = "reviewed";
+    const accepted = await store.commit([new Proxy(drafts[0], {})], async () => {});
+    expect(accepted).toHaveLength(1);
+    expect((await store.snapshot()).records).toHaveLength(1);
+});
 import { getDefaultConfig } from "@/types/config";
 import type { Question } from "@/types/quiz";
 const question: Question = {

@@ -3,6 +3,11 @@ import type { Question } from "@/types/quiz";
 import type { PromptConfig } from "@/types/config";
 import { coerceQuestion } from "./generator";
 
+/** Workflow payloads are persisted JSON; serialize proxies before cloning them. */
+export function cloneWorkflowData<T>(value: T): T {
+    return JSON.parse(JSON.stringify(value)) as T;
+}
+
 export interface PromptVersion {
     deleted?: boolean;
     automatic?: boolean;
@@ -58,11 +63,11 @@ export class ReviewWorkflowStore extends AsyncStore {
     }
     async snapshot(): Promise<WorkflowState> {
         await this.queue;
-        return structuredClone(await this.read(empty()));
+        return cloneWorkflowData(await this.read(empty()));
     }
     transact<T>(change: (state: WorkflowState) => T | Promise<T>): Promise<T> {
         const run = this.queue.then(async () => {
-            const state = structuredClone(await this.read(empty()));
+            const state = cloneWorkflowData(await this.read(empty()));
             const result = await change(state);
             await this.write(state);
             return result;
@@ -82,7 +87,7 @@ export class ReviewWorkflowStore extends AsyncStore {
                 scenarios: [],
                 summary: "当前设置快照",
                 automatic: true,
-                prompts: structuredClone(prompts),
+                prompts: cloneWorkflowData(prompts),
             };
             state.versions.push(version);
             return version;
@@ -102,14 +107,14 @@ export class ReviewWorkflowStore extends AsyncStore {
             const drafts = questions.map((question) => ({
                 id: workflowId(),
                 versionId,
-                original: structuredClone(question),
-                question: structuredClone(question),
+                original: cloneWorkflowData(question),
+                question: cloneWorkflowData(question),
                 action: "pass" as const,
                 reason: "",
                 source,
             }));
             state.pending.push(...drafts);
-            return structuredClone(drafts);
+            return cloneWorkflowData(drafts);
         });
     }
     async commit(drafts: ReviewDraft[], admit: (drafts: ReviewDraft[]) => Promise<void>): Promise<Question[]> {
@@ -129,9 +134,9 @@ export class ReviewWorkflowStore extends AsyncStore {
             await admit(passed);
             for (const draft of selected) {
                 if (draft.reason.trim())
-                    state.records.push({ ...structuredClone(draft), id: workflowId(), recordedAt: Date.now() });
+                    state.records.push({ ...cloneWorkflowData(draft), id: workflowId(), recordedAt: Date.now() });
                 state.pending = state.pending.filter((p) => p.id !== draft.id);
-                if (draft.action === "skip") state.pending.push({ ...structuredClone(draft), reason: "" });
+                if (draft.action === "skip") state.pending.push({ ...cloneWorkflowData(draft), reason: "" });
             }
             return passed.map((d, index) => ({ ...d.question, id: `q-${index + 1}` }));
         });
