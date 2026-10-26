@@ -136,7 +136,30 @@ const mathExtension: TokenizerAndRendererExtension = {
     },
 };
 
-marked.use({ extensions: [mathExtension] });
+/** 思源的 ==高亮==：交给行内解析器处理，保留内部强调、代码和公式。 */
+const highlightExtension: TokenizerAndRendererExtension = {
+    name: "rgHighlight",
+    level: "inline",
+    start(src) {
+        const index = src.indexOf("==");
+        return index < 0 ? undefined : index;
+    },
+    tokenizer(src) {
+        if (!src.startsWith("==") || src.startsWith("===")) return undefined;
+        const match = /^==((?:\\[^\n]|[^=\n]|=(?!=))+)==(?![=])/.exec(src);
+        if (!match || !match[1].trim()) return undefined;
+        return {
+            type: "rgHighlight",
+            raw: match[0],
+            tokens: this.lexer.inlineTokens(match[1]),
+        };
+    },
+    renderer(token) {
+        return `<mark>${this.parser.parseInline(token.tokens ?? [])}</mark>`;
+    },
+};
+
+marked.use({ extensions: [mathExtension, highlightExtension] });
 
 /**
  * 渲染结果缓存。
