@@ -4,13 +4,6 @@
 
 > An AI-powered quiz generation and spaced review plugin for SiYuan Note — select note content to generate multi-type quizzes, answer in a built-in panel, auto-grade, and track progress with a contribution-graph heatmap.
 
-## What is new in 0.1.2
-
-- Batch review after answering and grading; approve, edit, defer or discard before bank admission.
-- Separate current prompts, manual version snapshots and review feedback.
-- Filter, branch, compare, apply and delete versions; manually request evidence-based AI suggestions.
-- Improved LaTeX compatibility, select-menu stacking and compact version rows.
-
 ## 📖 Overview
 
 RecallGen is a SiYuan Note plugin that transforms your notes into reviewable quiz papers. Select a note block or trigger from a document/notebook/date range, and the plugin calls an AI model to generate various question types. After answering in a dedicated tab, objective questions are graded locally, subjective and coding questions are AI-graded, and a weakness analysis with study advice is generated. Score history is visualized as a GitHub-style heatmap, and past quizzes can be replayed from the history panel.
@@ -18,6 +11,8 @@ RecallGen is a SiYuan Note plugin that transforms your notes into reviewable qui
 ## ✨ Features
 
 ### Post-answer Review and Prompt Improvement
+
+- **Review layout**: original quiz numbers remain visible. Cards show rendered stems, options and readable answers by default; edit fields open on demand. Explanations and reasons are collapsible. Approve/defer/delete actions are directly accessible, deleted cards can be restored by selecting approve, and counts plus a sticky submit bar support batch review.
 
 - **New quiz workflow**: generate → answer → grade and save scores → batch review → admit approved questions to the bank. Existing bank reviews continue to update their schedules directly.
 - **Batch review**: edit questions, answers, types, tags and explanations together. Approve to admit, skip to keep pending, or discard. Editors show Markdown/LaTeX source; question previews render it.
@@ -28,6 +23,8 @@ RecallGen is a SiYuan Note plugin that transforms your notes into reviewable qui
 - **Pending and persistence**: pending questions are available in Review feedback. Confirmed skipped edits are saved; unsubmitted form edits are not autosaved. Workflow data is stored separately and is currently excluded from existing bank/score exports.
 
 ### Quiz Generation
+
+- **Formatting**: stems, options, explanations and bank-list stems share Markdown + KaTeX rendering, including bold, lists, code, formulas and `==highlight==`. Editors show source text; long bank stems scroll within their cells.
 
 - **6 Question Types**: Single choice, multiple choice, fill-in-the-blank, true/false, subjective (essay/discussion), and coding
 - **Difficulty Distribution**: 1–50 questions with customizable easy/medium/hard ratio and real-time validation; counts above the per-request limit are generated in batches, then deduplicated by stem and renumbered
@@ -54,6 +51,8 @@ The plugin supports **multi-endpoint + multi-model** configuration, with three A
 - **Progress Display**: Real-time phase (generating/reviewing/regenerating), round number, and detail shown during generation
 
 ### AI Protocol Support
+
+- **Reasoning effort**: Settings → AI Service offers server default / low / medium / high per model, shared by roles using that model. Server default omits the parameter. Chat Completions and Responses use their respective request fields; this option is unavailable for Messages. Model/provider support is required; higher effort generally increases latency and token usage.
 
 | Protocol | Endpoint Path | Use Case |
 |----------|--------------|----------|
@@ -313,7 +312,7 @@ Score record → index (recallgen-scores-index.json)
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | endpoints | AIEndpoint[] | 1 default endpoint | API connection config (name/provider/protocol/URL/Key) |
-| models | AIModel[] | 1 default model | Model config (name/endpoint/temperature/MaxTokens) |
+| models | AIModel[] | 1 default model | Model config (name/endpoint/temperature/MaxTokens/reasoning effort) |
 | roles | AIRoles | all m-default | Model ID for each of the 3 roles |
 | timeout | number | 120000 | forwardProxy timeout (ms) |
 | jsonSchemaEnabled | boolean | true | true=tools/function calling, false=json_object |
@@ -459,3 +458,12 @@ MIT License
 ## 👤 Author
 
 Solathis
+
+## What is new in 0.1.2
+
+- Newly generated questions enter batch review after answering and grading; approval is required for bank admission, including resumed sessions.
+- Review cards preserve original question numbers, render questions/options/readable answers by default, and offer on-demand editing, collapsible explanations/reasons, direct approve/defer/delete actions and a sticky submit bar.
+- Current prompts remain directly editable. Versions are saved manually and support scenario filtering, branching, comparison, application and deletion. Reasoned review feedback can be analyzed manually; users confirm suggestions before saving and applying changes.
+- Per-model reasoning effort: server default, low, medium or high for Chat Completions and Responses, subject to model/provider support.
+- Markdown, LaTeX and `==highlight==` rendering for questions, options, explanations and bank stems; improved formula delimiter compatibility.
+- Fixed duplicate heatmap month labels and proxy-cloning errors when saving post-answer review data; refined settings menus and version-library layout.
